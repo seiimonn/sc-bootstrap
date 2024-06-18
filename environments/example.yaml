@@ -1,0 +1,61 @@
+stack_name: your-cloud-stack
+api_url: https://your-cloud-stack.splunkcloud.com:8089
+is_stage: false
+allowlist:
+  search-ui: 
+  - 0.0.0.0/0
+  search-api: 
+  - 0.0.0.0/0
+  s2s:
+  - 0.0.0.0/0
+  hec: 
+  - 0.0.0.0/0
+hec:
+  - name: hec-token-1
+    token: e90e2fcb-1492-444a-a22e-93e94391a441
+    default_index: main
+    disabled: true
+  - name: hec-token-2
+    token: e90e2fcb-1492-444a-a22e-93e94391a442
+    default_index: main
+    disabled: false
+indexes:
+  - name: windows-events
+    datatype: event
+    maxmb: 10240000
+    days_searchable: 90
+  - name: windows-metrics
+    datatype: metric
+    maxmb: 10240
+    days_searchable: 10
+saml:
+  name: cloud_saml
+  entity_id: https://your-cloud-stack.splunkcloud.com
+  fqdn: https://your-cloud-stack.splunkcloud.com
+  port: 443
+  cert: | 
+    -----BEGIN CERTIFICATE-----
+    ....
+    -----END CERTIFICATE-----
+  sso_url: https://login.microsoftonline.com/<ID>/saml2
+  slo_url: https://login.microsoftonline.com/<ID>/saml2
+roles:
+  - name: business_user
+    imported_roles:
+      - user
+    default_app: search
+    search_indexes_allowed: ["main", "windows-events"]
+    search_indexes_default: ["main"]
+    search_job_quota: 100
+    search_disk_quota: 1000
+    search_time_window: 86400
+saml_role_mappings:
+  - roles: 
+     - business_user
+    group: group_name_form_idp
+splunkbase_apps:
+  - splunkbase_id: "6730"
+    version: 3.0.7
+    license_url: https://www.datapunctum.com/alert-manager-enterprise-free-license-annex
+  - splunkbase_id: "1621"
+    version: 5.3.2

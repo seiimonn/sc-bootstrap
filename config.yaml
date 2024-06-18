@@ -1,0 +1,6 @@
+proxy:
+  used: false
+  url: https://localhost:8080
+  username: username
+  password: password
+
