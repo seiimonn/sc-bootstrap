@@ -38,6 +38,7 @@ Planned features:
     - `export <STACK_NAME>_TOKEN=<token>`
     - `export <STACK_NAME>_USERNAME=<username>`
     - `export <STACK_NAME>_PASSWORD=<password>`
+    - The `<STACK_NAME>` should be the name of the environment you are configuring in uppercase and `_` instead of `-`.
 
 ## Usage
 

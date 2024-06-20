@@ -21,7 +21,7 @@ class Client:
         is_acs: bool = True,
         api_url: str = "",
     ):
-        self.stack_name = stack_name.upper()
+        self.stack_name = stack_name.upper().replace("-", "_")
         self.proxy = proxy
         self.is_stage = is_stage
 
