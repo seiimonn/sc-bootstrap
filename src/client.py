@@ -15,13 +15,13 @@ BASE_URLS = {
 class Client:
     def __init__(
         self,
-        env: str,
+        stack_name: str,
         proxy: Proxy,
         is_stage: bool = False,
         is_acs: bool = True,
         api_url: str = "",
     ):
-        self.env = env
+        self.stack_name = stack_name.upper()
         self.proxy = proxy
         self.is_stage = is_stage
 
@@ -30,17 +30,17 @@ class Client:
         else:
             self.base_url = api_url
 
-        self.token = os.environ.get(f"{env.upper()}_TOKEN")
+        self.token = os.environ.get(f"{self.stack_name}_TOKEN")
         if not self.token:
-            raise ValueError(f"Token not found for {env}")
+            raise ValueError(f"Token not found for {self.stack_name}")
 
-        self.username = os.environ.get(f"{env.upper()}_USERNAME")
+        self.username = os.environ.get(f"{self.stack_name}_USERNAME")
         if not self.username:
-            raise ValueError(f"Username not found for {env}")
+            raise ValueError(f"Username not found for {self.stack_name}")
 
-        self.password = os.environ.get(f"{env.upper()}_PASSWORD")
+        self.password = os.environ.get(f"{self.stack_name}_PASSWORD")
         if not self.password:
-            raise ValueError(f"Password not found for {env}")
+            raise ValueError(f"Password not found for {self.stack_name}")
 
         self.headers = {"Authorization": f"Bearer {self.token}"}
 

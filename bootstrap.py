@@ -21,16 +21,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 def main():
     parser = argparse.ArgumentParser(description='Bootstrap a new Splunk Cloud instance')
-    parser.add_argument('--env', help='Name of the environmnent to bootstrap', required=True)
-
+    parser.add_argument('--env-file', help='Path to the environment file', required=True)
+    parser.add_argument('--config-file', help='Path to the config file', required=False, default='config.yaml')
     args = parser.parse_args()
-    logging.info('Bootstrapping environment: %s', args.env)
 
-    config: Config = load_yaml_to_model("config.yaml", Config)
-    stack_config: StackConfiguration = load_yaml_to_model(f"environments/{args.env}.yaml", StackConfiguration)
-    acs_client = Client(env=args.env, proxy=config.proxy, is_stage=stack_config.is_stage)
-    api_client = Client(env=args.env, proxy=config.proxy, is_stage=stack_config.is_stage, is_acs=False, api_url=stack_config.api_url)
+    config: Config = load_yaml_to_model(args.config_file, Config)
+    stack_config: StackConfiguration = load_yaml_to_model(args.env_file, StackConfiguration)
+    acs_client = Client(stack_name=stack_config.stack_name, proxy=config.proxy, is_stage=stack_config.is_stage)
+    api_client = Client(stack_name=stack_config.stack_name, proxy=config.proxy, is_stage=stack_config.is_stage, is_acs=False, api_url=stack_config.api_url)
+
     logging.info("Read config and stack configuration")
+    logging.info('Bootstrapping environment: %s', stack_config.stack_name)
 
     logging.info("Setting allowlist")
     set_allowlist(client=acs_client, stack_config=stack_config)
