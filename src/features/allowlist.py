@@ -45,7 +45,12 @@ def get_allowlist(stack_name: str, client: Client) -> AllowList:
             get_feature_url(stack_name=stack_name, feature=feature), {}, {}
         )
         logging.debug("IP allow configuration for %s: %s", feature, response)
-        config[feature] = response.get("subnets", [])
+
+        if not isinstance(response, dict) or "subnets" not in response:
+            logging.info("Did not find any existing IP allow configuration for %s", feature)
+            config[feature] = []
+        else:
+            config[feature] = response.get("subnets", [])
 
     logging.info("Retrieved IP allow configuration for %s: %s", stack_name, config)
     return AllowList.model_validate(config)

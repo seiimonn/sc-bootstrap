@@ -31,6 +31,10 @@ def get_hec(stack_name: str, client: Client) -> List[HecToken]:
     _, response = client.get(get_hec_url(stack=stack_name), {}, {})
     logging.debug("HEC configuration for %s: %s", stack_name, response)
 
+    if not isinstance(response, dict) or "http-event-collectors" not in response:
+        logging.info("Did not find any existing HEC configuration")
+        return []
+
     collectors = response.get("http-event-collectors", [])
 
     return [

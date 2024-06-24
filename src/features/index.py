@@ -38,6 +38,10 @@ def get_indexes(stack_name: str, client: Client) -> List[Index]:
     _, response = client.get(get_index_url(stack_name=stack_name), {}, {})
     logging.debug("Index configuration for %s: %s", stack_name, response)
 
+    if not isinstance(response, list):
+        logging.info("Invalid response type for indexes")
+        return []
+
     return [
         Index(
             name=index.get("name"),
