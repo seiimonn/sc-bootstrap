@@ -54,14 +54,14 @@ def main():
     logging.info("Setting SAML")
     set_saml(stack_config=stack_config, client=api_client)
 
+    logging.info("Setting Splunkbase apps")
+    set_splunkbase_apps(stack_config=stack_config, client=acs_client)
+
     logging.info("Setting roles")
     set_roles(stack_config=stack_config, client=api_client)
 
     logging.info("Setting SAML role mappings")
     set_saml_mapping(stack_config=stack_config, client=api_client)
-
-    logging.info("Setting Splunkbase apps")
-    set_splunkbase_apps(stack_config=stack_config, client=acs_client)
 
     logging.info("Bootstrap complete")
 
