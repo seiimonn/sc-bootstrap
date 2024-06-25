@@ -64,6 +64,9 @@ class Client:
         Handle the response from the API - raise an error if the response is not successful
         If the response is JSON, return the JSON object, otherwise return the text
         """
+        if response.status_code >= 400:
+            logging.error("Go error %s", response.text)
+            
         response.raise_for_status()
 
         if "content-type" in response.headers and response.headers[
@@ -86,7 +89,6 @@ class Client:
             else:
                 form_data.append((key, value))
 
-        logging.error(form_data)
         return form_data
     
     def authenticate_splunkbase(self):

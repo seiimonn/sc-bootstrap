@@ -13,6 +13,9 @@ DEFAULT_ROLES = [
     "power",
     "user",
     "sc_admin",
+    "apps",
+    "list_users_roles",
+    "tokens_auth",
 ]
 
 

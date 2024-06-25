@@ -5,6 +5,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
+from pydantic import ValidationError
 from models import StackConfiguration, Config
 from utilities import load_yaml_to_model
 from client import Client
@@ -25,22 +26,30 @@ def main():
     parser.add_argument('--config-file', help='Path to the config file', required=False, default='config.yaml')
     args = parser.parse_args()
 
-    config: Config = load_yaml_to_model(args.config_file, Config)
-    stack_config: StackConfiguration = load_yaml_to_model(args.env_file, StackConfiguration)
-    acs_client = Client(stack_name=stack_config.stack_name, proxy=config.proxy, is_stage=stack_config.is_stage)
-    api_client = Client(stack_name=stack_config.stack_name, proxy=config.proxy, is_stage=stack_config.is_stage, is_acs=False, api_url=stack_config.api_url)
+    try:
+        config: Config = load_yaml_to_model(args.config_file, Config)
+        stack_config: StackConfiguration = load_yaml_to_model(args.env_file, StackConfiguration)
+        acs_client = Client(stack_name=stack_config.stack_name, proxy=config.proxy, is_stage=stack_config.is_stage)
+        api_client = Client(stack_name=stack_config.stack_name, proxy=config.proxy, is_stage=stack_config.is_stage, is_acs=False, api_url=stack_config.api_url)
+        logging.info("Read config and stack configuration")
+    except FileNotFoundError as e:
+        logging.error("File not found: %s", e)
+        sys.exit(1)
+    except ValidationError as e:
+        for error in e.errors():
+            logging.error(error["msg"].replace("Value error, ", ""))
+        sys.exit(1)
 
-    logging.info("Read config and stack configuration")
     logging.info('Bootstrapping environment: %s', stack_config.stack_name)
 
     logging.info("Setting allowlist")
     set_allowlist(client=acs_client, stack_config=stack_config)
 
-    logging.info("Setting HEC")
-    set_hec(stack_config=stack_config, client=acs_client)
-
     logging.info("Setting indexes")
     set_indexes(stack_config=stack_config, client=acs_client)
+
+    logging.info("Setting HEC")
+    set_hec(stack_config=stack_config, client=acs_client)
 
     logging.info("Setting SAML")
     set_saml(stack_config=stack_config, client=api_client)

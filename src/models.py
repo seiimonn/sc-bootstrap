@@ -1,4 +1,7 @@
-from pydantic import BaseModel, Field
+import os
+import uuid
+
+from pydantic import BaseModel, Field, model_validator
 from pydantic.networks import IPvAnyNetwork
 
 from enum import Enum
@@ -111,6 +114,27 @@ class SSOBinding(str, Enum):
     REDIRECT = "HTTP-RREDIRECT"
 
 
+class SAMLScriptArg(CustomBaseModel):
+    name: str
+    env_var: str
+
+    @property
+    def value(self):
+        if self.env_var in os.environ:
+            return os.environ[self.env_var]
+
+        raise ValueError(f"Environment variable {self.env_var} not found")
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "value": self.value,
+        }
+
+    def to_string(self):
+        return f"{self.name}:{self.value}"
+
+
 class SAML(CustomBaseModel):
     name: str
     entity_id: str
@@ -126,6 +150,10 @@ class SAML(CustomBaseModel):
         "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
     )
     alias_roles: str = "http://schemas.microsoft.com/ws/2008/06/identity/claims/groups"
+    use_auth_extentsion_token_only: bool = True
+    script_path: str = ""
+    script_functions: List[str] = Field(default=["login", "getUserInfo"])
+    script_args: List[SAMLScriptArg] = Field(default=[])
 
     def to_create_dict(self):
         return {
@@ -141,6 +169,10 @@ class SAML(CustomBaseModel):
             "attributeAliasRealName": self.alias_realname,
             "attributeAliasRole": self.alias_roles,
             "idpCertificatePayload": self.cert,
+            "scriptPath": self.script_path,
+            "scriptFunctions": self.script_functions,
+            "scriptSecureArguments": [arg.to_string() for arg in self.script_args],
+            "useAuthExtForTokenAuthOnly": self.use_auth_extentsion_token_only,
         }
 
     def to_update_dict(self):
@@ -155,24 +187,16 @@ class SAML(CustomBaseModel):
             "attributeAliasMail": self.alias_email,
             "attributeAliasRealName": self.alias_realname,
             "attributeAliasRole": self.alias_roles,
+            "idpCertificatePayload": self.cert,
+            "scriptPath": self.script_path,
+            "scriptFunctions": self.script_functions,
+            "scriptSecureArguments": [arg.to_string() for arg in self.script_args],
+            "useAuthExtForTokenAuthOnly": self.use_auth_extentsion_token_only,
         }
 
-    def __eq__(self, other):
-        return all(
-            [
-                self.name == other.name,
-                self.entity_id == other.entity_id,
-                self.fqdn == other.fqdn,
-                self.port == other.port,
-                self.slo_url == other.slo_url,
-                self.sso_url == other.sso_url,
-                self.sso_binding == other.sso_binding,
-                self.slo_binding == other.slo_binding,
-                self.alias_realname == other.alias_realname,
-                self.alias_email == other.alias_email,
-                self.alias_roles == other.alias_roles,
-            ]
-        )
+    def __eq__(self, _) -> bool:
+        # As we can not compare the script secure arguments we always return False
+        return False
 
 
 class Role(CustomBaseModel):
@@ -266,7 +290,7 @@ class SplunkbaseApp(CustomBaseModel):
             "splunkbaseID": self.splunkbase_id,
             "version": self.version,
         }
-    
+
     def to_update_dict(self):
         return {
             "version": self.version,
@@ -279,7 +303,6 @@ class SplunkbaseApp(CustomBaseModel):
                 self.version == other.version,
             ]
         )
-    
 
 
 class StackConfiguration(CustomBaseModel):
@@ -287,13 +310,69 @@ class StackConfiguration(CustomBaseModel):
     stack_name: str
     api_url: str
     is_stage: bool = False
-    allowlist: AllowList = Field()
+    allowlist: AllowList = Field(default=AllowList())
     hec: List[HecToken] = Field(default=[])
     indexes: List[Index] = Field(default=[])
     roles: List[Role] = Field(default=[])
     saml: Union[None, SAML] = Field(default=None)
     saml_role_mappings: List[SAMLRoleMapping] = Field(default=[])
     splunkbase_apps: List[SplunkbaseApp] = Field(default=[])
+
+    @model_validator(mode="after")
+    def verify_hec_tokens(self):
+        hec_names = [hec.name for hec in self.hec]
+        hec_tokens = [hec.token for hec in self.hec]
+
+        if len(hec_names) != len(set(hec_names)):
+            raise ValueError("Duplicate HEC names found")
+
+        if len(hec_tokens) != len(set(hec_tokens)):
+            raise ValueError("Duplicate HEC tokens found")
+
+        for token in hec_tokens:
+            try:
+                uuid.UUID(token)
+            except ValueError:
+                raise ValueError(f"Invalid token {token}")
+
+        return self
+
+    @model_validator(mode="after")
+    def verify_indexes(self):
+        index_names = [index.name for index in self.indexes]
+
+        if len(index_names) != len(set(index_names)):
+            raise ValueError("Duplicate index names found")
+
+        return self
+
+    @model_validator(mode="after")
+    def verify_roles(self):
+        role_names = [role.name for role in self.roles]
+
+        if len(role_names) != len(set(role_names)):
+            raise ValueError("Duplicate role names found")
+
+        return self
+
+    @model_validator(mode="after")
+    def verify_saml_role_mappings(self):
+        group_names = [mapping.group for mapping in self.saml_role_mappings]
+
+        if len(group_names) != len(set(group_names)):
+            raise ValueError("Duplicate group names found")
+
+        return self
+
+    @model_validator(mode="after")
+    def verify_splunkbase_apps(self):
+        splunkbase_ids = [app.splunkbase_id for app in self.splunkbase_apps]
+
+        if len(splunkbase_ids) != len(set(splunkbase_ids)):
+            raise ValueError("Duplicate app IDs found")
+
+        return self
+
 
 class Proxy(CustomBaseModel):
     used: bool = False

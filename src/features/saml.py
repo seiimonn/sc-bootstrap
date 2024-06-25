@@ -40,6 +40,7 @@ def get_saml(client: Client) -> Union[SAML, None]:
     root = ET.fromstring(current_config)
     keys = root.findall(".//s:key", namespaces)
     entry_title = root.find(".//atom:entry/atom:title", namespaces)
+
     if not entry_title.text:
         logging.info("No SAML configuration found due to missing title")
         return None
@@ -58,6 +59,8 @@ def get_saml(client: Client) -> Union[SAML, None]:
         alias_email=key_values["attributeAliasMail"],
         alias_realname=key_values["attributeAliasRealName"],
         alias_roles=key_values["attributeAliasRole"],
+        script_path=key_values.get("scriptPath", ""),
+        use_auth_extentsion_token_only=key_values.get("useAuthExtensionTokenOnly", True),
     )
 
 
