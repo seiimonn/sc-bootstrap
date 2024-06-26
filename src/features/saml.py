@@ -41,7 +41,7 @@ def get_saml(client: Client) -> Union[SAML, None]:
     keys = root.findall(".//s:key", namespaces)
     entry_title = root.find(".//atom:entry/atom:title", namespaces)
 
-    if not entry_title.text:
+    if not isinstance(entry_title, ET.Element) or not entry_title.text:
         logging.info("No SAML configuration found due to missing title")
         return None
     
@@ -75,13 +75,13 @@ def set_saml(stack_config: StackConfiguration, client: Client) -> None:
     """
     saml = stack_config.saml
     if not saml:
-        logging.info("No SAML configuration found")
+        logging.info("No SAML configuration to configure found - skipping")
         return
 
     current_config = get_saml(client=client)
     if not current_config:
         _, _ = client.post(get_saml_url(), {}, saml.to_create_dict(), as_json=False)
-        logging.debug("SAML configuration created")
+        logging.info("SAML configuration created")
     elif current_config != saml:
         _, _ = client.post(
             get_saml_url() + "/" + current_config.name,
@@ -89,6 +89,6 @@ def set_saml(stack_config: StackConfiguration, client: Client) -> None:
             saml.to_update_dict(),
             as_json=False,
         )
-        logging.debug("SAML configuration updated")
+        logging.info("SAML configuration updated")
     else:
         logging.info("SAML configuration unchanged")
